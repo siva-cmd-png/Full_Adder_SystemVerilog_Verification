@@ -328,7 +328,7 @@ The verification environment can be extended by adding:
 
 ## 👨‍💻 Author
 
-**Siva Sankar Reddy**
+**G.Siva Sankar Reddy**
 
 B.Tech — Electronics and Communication Engineering
 
