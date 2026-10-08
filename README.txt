@@ -1,10 +1,10 @@
-# Full Adder Verification using SystemVerilog
+# Full Adder SystemVerilog Verification
 
 ## 📌 Project Overview
 
-This project implements a **class-based SystemVerilog verification environment** for a 1-bit Full Adder.
+This project implements and verifies a **1-bit Full Adder** using **SystemVerilog**.
 
-The verification environment is built using separate components such as:
+A class-based SystemVerilog verification environment is developed to verify the Full Adder using separate verification components such as:
 
 - Transaction
 - Generator
@@ -12,317 +12,391 @@ The verification environment is built using separate components such as:
 - Monitor
 - Scoreboard
 - Environment
-- Interface
 - Test
+- Interface
+- Testbench Top
 
-The testbench generates randomized input combinations and verifies the Full Adder outputs using a scoreboard.
+The testbench generates randomized input combinations and compares the DUT outputs against the expected results using a scoreboard.
 
 ---
 
-## 🔷 Full Adder
+## 🎯 Objectives
 
-A Full Adder performs binary addition of three 1-bit inputs:
+- Design a 1-bit Full Adder using SystemVerilog.
+- Develop a modular class-based verification environment.
+- Generate randomized input transactions.
+- Drive stimulus to the DUT through a virtual interface.
+- Monitor DUT inputs and outputs.
+- Calculate expected outputs in the scoreboard.
+- Compare expected and actual results automatically.
+- Create a reusable and structured verification environment.
+
+---
+
+## 🧮 Design Under Test — Full Adder
+
+The Full Adder has three inputs and two outputs.
 
 ### Inputs
-- `a` — First input
-- `b` — Second input
-- `c` — Carry input
+
+| Signal | Description |
+|---|---|
+| `a` | First input |
+| `b` | Second input |
+| `cin` | Carry input |
 
 ### Outputs
-- `sum` — Sum output
-- `carry` — Carry output
+
+| Signal | Description |
+|---|---|
+| `sum` | Sum output |
+| `cout` | Carry output |
 
 ### Logic
 
 ```text
-Sum   = A ⊕ B ⊕ C
+sum  = a ^ b ^ cin
+cout = (a & b) | (b & cin) | (a & cin)
+```
 
-Carry = AB + BC + AC
+### Truth Table
+
+| A | B | Cin | Sum | Cout |
+|---|---|---|---|---|
+| 0 | 0 | 0 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 0 |
+| 0 | 1 | 0 | 1 | 0 |
+| 0 | 1 | 1 | 0 | 1 |
+| 1 | 0 | 0 | 1 | 0 |
+| 1 | 0 | 1 | 0 | 1 |
+| 1 | 1 | 0 | 0 | 1 |
+| 1 | 1 | 1 | 1 | 1 |
+
+---
+
+## 🏗️ Verification Architecture
+
+```text
+                    ┌─────────────────┐
+                    │      TEST       │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │  ENVIRONMENT    │
+                    └────────┬────────┘
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+              ▼                             ▼
+       ┌─────────────┐               ┌─────────────┐
+       │  GENERATOR  │                       │   DRIVER    │
+       └──────┬──────┘               └──────┬──────┘
+              │                             │
+              ▼                             ▼
+       ┌─────────────┐             ┌─────────────┐
+       │ TRANSACTION │                    │     DUT     │
+       └─────────────┘               │ Full Adder  │
+                                         └──────┬──────┘
+                                            │
+                                            ▼
+                                     ┌─────────────┐
+                                     │   MONITOR   │
+                                     └──────┬──────┘
+                                            │
+                                            ▼
+                                     ┌─────────────┐
+                                     │ SCOREBOARD  │
+                                     └─────────────┘
 ```
 
 ---
 
-## 🏗️ Verification Environment
-
-The project follows a basic class-based verification architecture:
+## 📂 Project Structure
 
 ```text
-             Generator
-                 │
-                 │ Transaction
-                 ▼
-              Driver
-                 │
-                 ▼
-                DUT
-                 │
-                 ▼
-              Monitor
-                 │
-                 │ Transaction
-                 ▼
-             Scoreboard
-                 │
-                 ▼
-              PASS/FAIL
+Full_Adder_SystemVerilog_Verification/
+│
+├── rtl/
+│   └── full_adder.sv
+│
+├── tb/
+│   ├── transaction.sv
+│   ├── generator.sv
+│   ├── driver.sv
+│   ├── monitor.sv
+│   ├── scoreboard.sv
+│   ├── environment.sv
+│   ├── interface.sv
+│   ├── test.sv
+│   └── tb_top.sv
+│
+└── README.md
 ```
 
-### Components
+---
 
-#### 1. Transaction
+## 🔍 Verification Components
 
-The `transaction` class contains the randomized inputs and output signals.
+### 1. Transaction
+
+Defines the data exchanged between the verification components.
+
+It contains the Full Adder input and output signals:
 
 ```text
 a
 b
-c
-↓
+cin
 sum
-carry
+cout
 ```
-
-The inputs `a`, `b`, and `c` are declared as randomized variables.
 
 ---
 
-#### 2. Generator
+### 2. Generator
 
-The generator creates randomized transactions and sends them to the driver using a mailbox.
+The Generator creates randomized transactions and sends them to the Driver.
 
 ```text
 Generator
-    ↓
-Random Transaction
-    ↓
-Mailbox
+    │
+    ▼
+Randomized Transaction
 ```
 
-The current implementation generates **10 transactions**.
+This allows multiple input combinations to be tested automatically.
 
 ---
 
-#### 3. Driver
+### 3. Driver
 
-The driver receives transactions from the generator and applies the inputs to the DUT through the virtual interface.
-
-```text
-Transaction
-     ↓
-   Driver
-     ↓
-a, b, c → DUT
-```
-
-The current driver processes **5 transactions**.
-
----
-
-#### 4. Monitor
-
-The monitor observes the DUT inputs and outputs through the virtual interface.
-
-It collects:
+The Driver receives transactions from the Generator and drives the corresponding signals to the DUT through the SystemVerilog interface.
 
 ```text
-a
-b
-c
-sum
-carry
-```
-
-and sends the collected transaction to the scoreboard through a mailbox.
-
----
-
-#### 5. Scoreboard
-
-The scoreboard independently calculates the expected Full Adder outputs and compares them with the outputs observed from the DUT.
-
-Expected Sum:
-
-```text
-A ^ B ^ C
-```
-
-Expected Carry:
-
-```text
-(A & B) | (B & C) | (C & A)
-```
-
-If the expected and actual outputs match:
-
-```text
-VERIFICATION PASSED
-```
-
-Otherwise:
-
-```text
-VERIFICATION FAILED
+Generator
+    │
+    ▼
+Driver
+    │
+    ▼
+Interface
+    │
+    ▼
+DUT
 ```
 
 ---
 
-#### 6. Environment
+### 4. Monitor
 
-The environment creates and connects all the verification components.
+The Monitor observes the DUT signals through the interface and captures the actual DUT behavior.
 
-It contains:
-
-- Generator
-- Driver
-- Monitor
-- Scoreboard
-- Mailboxes
-
-The environment starts the verification components using parallel execution.
+It forwards the observed transaction to the Scoreboard.
 
 ---
 
-#### 7. Interface
+### 5. Scoreboard
 
-The interface provides a common connection between the DUT and the verification components.
-
-Signals included:
+The Scoreboard calculates the expected Full Adder output and compares it with the actual DUT output.
 
 ```text
-a
-b
-c
-sum
-carry
+Expected Output
+      │
+      ├──────► SCOREBOARD ◄────── Actual Output
+      │
+      ▼
+   Compare
+      │
+   ┌──┴──┐
+   │     │
+ PASS   FAIL
 ```
 
-The virtual interface is passed to the driver and monitor.
-
 ---
 
-#### 8. Test
+### 6. Environment
 
-The test class creates the verification environment and starts the simulation.
+The Environment connects the major verification components together.
 
 ```text
-Test
- ↓
 Environment
- ↓
-Generator + Driver + Monitor + Scoreboard
+│
+├── Generator
+├── Driver
+├── Monitor
+└── Scoreboard
 ```
+
+---
+
+### 7. Test
+
+The Test controls the overall verification flow and starts the Environment.
+
+---
+
+### 8. Interface
+
+The SystemVerilog interface provides a common connection between the DUT and verification components.
+
+It allows the Driver and Monitor to communicate with the DUT using a virtual interface.
+
+---
+
+### 9. Testbench Top
+
+The `tb_top.sv` file acts as the top-level testbench.
+
+It connects:
+
+```text
+Testbench
+    │
+    ├── Interface
+    │
+    ├── DUT
+    │
+    └── Test
+```
+
+---
 
 ## 🔄 Verification Flow
 
-The overall verification flow is:
-
 ```text
-1. Test creates Environment
-            ↓
-2. Environment creates all components
-            ↓
-3. Generator creates randomized transactions
-            ↓
-4. Driver receives transactions
-            ↓
-5. Driver applies A, B and C to DUT
-            ↓
-6. Monitor observes DUT signals
-            ↓
-7. Monitor sends transaction to Scoreboard
-            ↓
-8. Scoreboard calculates expected outputs
-            ↓
-9. Actual and expected outputs are compared
-            ↓
-10. Verification PASS / FAIL
+1. Test starts
+       ↓
+2. Environment is created
+       ↓
+3. Generator creates randomized transaction
+       ↓
+4. Driver receives transaction
+       ↓
+5. Driver drives inputs to DUT
+       ↓
+6. DUT calculates Sum and Carry
+       ↓
+7. Monitor observes DUT outputs
+       ↓
+8. Scoreboard calculates expected output
+       ↓
+9. Expected output is compared with actual output
+       ↓
+10. PASS / FAIL result is reported
 ```
 
 ---
 
-## 🧪 Verification Method
+## 🧪 Test Strategy
 
-The project uses:
+The verification environment uses randomized input combinations for:
 
-- Randomized stimulus
-- Object-oriented SystemVerilog classes
-- Mailboxes for communication
-- Virtual interfaces
-- Driver-based stimulus application
-- Monitor-based signal observation
-- Scoreboard-based checking
+```text
+A   = 0 / 1
+B   = 0 / 1
+Cin = 0 / 1
+```
 
-This demonstrates the fundamentals of a **SystemVerilog class-based verification environment**.
+The complete input space of a 1-bit Full Adder consists of **8 possible combinations**.
+
+The scoreboard independently calculates:
+
+```text
+Expected Sum  = A ^ B ^ Cin
+
+Expected Cout = (A & B) |
+                (B & Cin) |
+                (A & Cin)
+```
+
+The calculated result is compared with the DUT output.
 
 ---
 
 ## 🛠️ Technologies Used
 
 - **SystemVerilog**
-- **EDA Playground**
-- Class-based verification
-- Mailbox communication
+- Class-based Verification
+- Randomization
 - Virtual Interface
-- Randomization
+- Object-Oriented Programming
+- Functional Verification
+- Scoreboard-based checking
+- EDA Playground
 
 ---
 
-## 📊 Verification Result
+## 💻 Simulation
 
-The scoreboard checks the Full Adder functionality using the following conditions:
+The project can be simulated using a SystemVerilog-compatible simulator such as:
 
-```text
-Expected Sum =
-A ^ B ^ C
-```
-
-```text
-Expected Carry =
-(A & B) | (B & C) | (C & A)
-```
-
-The scoreboard reports:
-
-```text
-VERIFICATION PASSED
-```
-
-when the DUT output matches the expected result.
+- Questa/ModelSim
+- VCS
+- Xcelium
+- Icarus Verilog with appropriate SystemVerilog support
+- EDA Playground
 
 ---
 
-## 🎯 Learning Outcomes
+## 📊 Expected Result
 
-Through this project, the following SystemVerilog verification concepts were practiced:
+A successful simulation should report that the generated Full Adder transactions match the expected results.
 
-- SystemVerilog classes
-- Randomization
-- Transactions
-- Mailboxes
-- Virtual interfaces
-- Generator
-- Driver
-- Monitor
-- Scoreboard
-- Environment
-- Program block
-- Basic constrained/random stimulus generation
-- Functional result checking
+Example:
+
+```text
+--------------------------------
+ Full Adder Verification
+--------------------------------
+
+Transaction 1 : PASS
+Transaction 2 : PASS
+Transaction 3 : PASS
+Transaction 4 : PASS
+Transaction 5 : PASS
+Transaction 6 : PASS
+Transaction 7 : PASS
+Transaction 8 : PASS
+
+--------------------------------
+ Verification Completed
+--------------------------------
+```
 
 ---
 
 ## 🚀 Future Improvements
 
-The verification environment can be extended by adding:
+This project can be extended with:
 
 - Functional coverage
-- SystemVerilog assertions
-- Constraint-based randomization
-- Pass/fail counters
-- Complete 8-case Full Adder verification
-- Improved synchronization between driver and monitor
+- Code coverage
+- Assertions
 - Clocking blocks
-- UVM-based verification environment
+- Mailboxes
+- Interfaces and modports
+- Constraint-based randomization
+- UVM-based verification
+- Coverage-driven verification
+- Additional corner-case testing
+
+---
+
+## 📚 Learning Outcomes
+
+Through this project, the following SystemVerilog verification concepts are demonstrated:
+
+- Classes and objects
+- Randomization
+- Transactions
+- Interfaces
+- Virtual interfaces
+- Generator-driver communication
+- Monitor-based observation
+- Scoreboard-based checking
+- Modular testbench architecture
+- Object-oriented verification
 
 ---
 
@@ -332,4 +406,8 @@ The verification environment can be extended by adding:
 
 B.Tech — Electronics and Communication Engineering
 
-Interested in **VLSI Design and Verification**, SystemVerilog and UVM.
+Interested in:
+
+- VLSI Design
+- Digital Design
+
